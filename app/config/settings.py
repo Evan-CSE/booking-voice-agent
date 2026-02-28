@@ -3,7 +3,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # LiveKit and LLM
-    LIVEKIT_URL: str = "ws://localhost:7880"
+    LIVEKIT_URL: str = "ws://livekit-server:7880"
     LIVEKIT_API_KEY: str = "devkey"
     LIVEKIT_API_SECRET: str = "secret"
     GOOGLE_API_KEY: Optional[str] = None

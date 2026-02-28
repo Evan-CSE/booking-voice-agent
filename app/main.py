@@ -51,7 +51,7 @@ async def entrypoint(ctx: JobContext):
 
     instructions = f"""
     You are a highly efficient personal scheduling assistant.
-    Your ONLY purpose is to help the user schedule appointments on their personal Google Calendar.
+    Your ONLY purpose is to help the user schedule appointments on Evan's personal Google Calendar.
     Current date and time: {datetime.now().astimezone().isoformat()}
     
     Workflow:
