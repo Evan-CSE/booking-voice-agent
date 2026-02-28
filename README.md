@@ -58,7 +58,10 @@ app/
 
 ## 🚀 Live Demo & Testing Instructions
 
-Not available yet
+Project is not deployed yet. But you can test it locally.
+
+[![Watch the Demo](https://img.youtube.com/vi/zwvGTtXNiSU/hqdefault.jpg)](https://youtu.be/zwvGTtXNiSU)
+
 
 ### How to Test the Agent Locally:
 1. Ensure the stack is running (see *Setup Instructions* below).
