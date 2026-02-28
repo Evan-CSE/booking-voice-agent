@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ..domain.interfaces import EmailSender
 from ..services.logger import get_logger
+from ..config.settings import settings
 
 logger = get_logger("infrastructure.smtp")
 
@@ -11,10 +12,10 @@ class SmtpEmailSender(EmailSender):
     """Infrastructure implementation of EmailSender using SMTP."""
     
     def __init__(self):
-        self.smtp_server = os.getenv("SMTP_SERVER")
-        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = os.getenv("SMTP_USERNAME")
-        self.smtp_password = os.getenv("SMTP_PASSWORD")
+        self.smtp_server = settings.SMTP_SERVER
+        self.smtp_port = settings.SMTP_PORT
+        self.smtp_user = settings.SMTP_USERNAME
+        self.smtp_password = settings.SMTP_PASSWORD
 
     def send_overview_email(self, recipient_email: str, subject: str, body: str) -> bool:
         if not all([self.smtp_server, self.smtp_user, self.smtp_password]):

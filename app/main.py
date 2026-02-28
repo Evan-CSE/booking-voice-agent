@@ -20,8 +20,8 @@ from .infrastructure.livekit_agent import AgentTools
 from .usecases.schedule_meeting import VoiceAgentUseCase
 from .services.logger import get_logger
 from .presentation.middleware import logging_middleware
+from .config.settings import settings
 
-load_dotenv()
 logger = get_logger("composition-root")
 
 # --- Composition Root: Dependency Injection Setup ---
@@ -43,9 +43,9 @@ def prewarm(proc: JobProcess):
 async def entrypoint(ctx: JobContext):
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
 
-    stt = openai.STT(base_url=os.getenv("STT_BASE_URL", "http://stt:8000/v1"), api_key="not-needed")
-    tts = openai.TTS(base_url=os.getenv("TTS_BASE_URL", "http://tts:8001/v1"), api_key="not-needed", response_format="pcm")
-    gemini_llm = google.LLM(model="gemini-3-flash-preview")
+    stt = openai.STT(base_url=settings.STT_BASE_URL, api_key="not-needed")
+    tts = openai.TTS(base_url=settings.TTS_BASE_URL, api_key="not-needed", response_format="pcm")
+    gemini_llm = google.LLM(model=settings.LLM_MODEL)
 
     fnc_tools = create_agent_tools()
 
@@ -83,12 +83,12 @@ async def get_token(request):
     room_name = request.query.get("room_name", f"voice-{uuid.uuid4().hex[:8]}")
     participant_identity = request.query.get("identity", f"user-{uuid.uuid4().hex[:8]}")
     try:
-        api_key = os.getenv("LIVEKIT_API_KEY")
-        api_secret = os.getenv("LIVEKIT_API_SECRET")
+        api_key = settings.LIVEKIT_API_KEY
+        api_secret = settings.LIVEKIT_API_SECRET
         token = api.AccessToken(api_key, api_secret).with_identity(participant_identity).with_name("Web User").with_grants(
             api.VideoGrants(room_join=True, room=room_name)
         )
-        return web.json_response({"token": token.to_jwt(), "url": os.getenv("LIVEKIT_URL", "")})
+        return web.json_response({"token": token.to_jwt(), "url": settings.LIVEKIT_URL})
     except Exception as e:
          return web.json_response({"error": str(e)}, status=500)
 
@@ -101,7 +101,7 @@ def run_web():
     frontend_dir = os.path.join(current_dir, "frontend")
     app.router.add_static('/', frontend_dir, name='static', show_index=True)
     
-    port = int(os.environ.get('PORT', 8080))
+    port = settings.PORT
     print(f"Starting web server on port {port}")
     web.run_app(app, port=port)
 

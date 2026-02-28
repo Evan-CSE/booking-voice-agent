@@ -18,7 +18,13 @@ logger = logging.getLogger("tts-service")
 
 app = FastAPI(title="Self-Hosted Piper TTS")
 
-VOICE_MODEL = os.getenv("PIPER_VOICE_MODEL", "/models/en_US-lessac-medium.onnx")
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    PIPER_VOICE_MODEL: str = "/models/en_US-lessac-medium.onnx"
+
+settings = Settings()
+VOICE_MODEL = settings.PIPER_VOICE_MODEL
 
 logger.info(f"Loading Piper voice: {VOICE_MODEL}")
 voice = PiperVoice.load(VOICE_MODEL)

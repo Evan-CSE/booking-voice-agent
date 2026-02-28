@@ -14,9 +14,17 @@ logger = logging.getLogger("stt-service")
 
 app = FastAPI(title="Self-Hosted Whisper STT")
 
-MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "tiny")
-DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
-COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    WHISPER_MODEL_SIZE: str = "tiny"
+    WHISPER_DEVICE: str = "cpu"
+    WHISPER_COMPUTE_TYPE: str = "int8"
+
+settings = Settings()
+MODEL_SIZE = settings.WHISPER_MODEL_SIZE
+DEVICE = settings.WHISPER_DEVICE
+COMPUTE_TYPE = settings.WHISPER_COMPUTE_TYPE
 
 logger.info(f"Loading Whisper model: {MODEL_SIZE} on {DEVICE} ({COMPUTE_TYPE})")
 whisper_model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE_TYPE)
