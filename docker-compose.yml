@@ -1,0 +1,83 @@
+services:
+  # ── Self-hosted LiveKit Server ──
+  livekit-server:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880" # WebSocket + HTTP
+      - "7881:7881" # RTC TCP
+      - "50000-50100:50000-50100/udp" # WebRTC UDP
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:7880" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Self-hosted Speech-to-Text (faster-whisper) ──
+  stt:
+    build: ./stt-service
+    environment:
+      - WHISPER_MODEL_SIZE=tiny
+    volumes:
+      - ./stt-service/server.py:/app/server.py
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Self-hosted Text-to-Speech (Piper) ──
+  tts:
+    build: ./tts-service
+    volumes:
+      - ./tts-service/server.py:/app/server.py
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── LiveKit Voice Agent ──
+  agent:
+    build: .
+    command: python -m app.main start
+    environment:
+      - LIVEKIT_URL=ws://livekit-server:7880
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - STT_BASE_URL=http://stt:8000/v1
+      - TTS_BASE_URL=http://tts:8001/v1
+    volumes:
+      - ./app:/app/app
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.json:/app/token.json
+    depends_on:
+      livekit-server:
+        condition: service_healthy
+      stt:
+        condition: service_healthy
+      tts:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Frontend + Token Server ──
+  web:
+    build: .
+    command: python -m app.main web
+    volumes:
+      - ./app:/app/app
+      - ./frontend:/app/frontend
+    ports:
+      - "8080:8080"
+    environment:
+      # This URL is returned to the browser — must be reachable from the host
+      - LIVEKIT_URL=ws://localhost:7880
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+    depends_on:
+      livekit-server:
+        condition: service_healthy
+    restart: unless-stopped
