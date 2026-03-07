@@ -8,7 +8,7 @@ services:
     ports:
       - "7880:7880" # WebSocket + HTTP
       - "7881:7881" # RTC TCP
-      - "50000-50100:50000-50100/udp" # WebRTC UDP
+      - "41000-41100:41000-41100/udp" # WebRTC UDP
     networks:
       - livekit-net
     healthcheck:

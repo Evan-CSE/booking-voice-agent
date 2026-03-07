@@ -1,4 +1,4 @@
-livekit-agents>=1.0.0
+livekit-agents[mcp]>=1.4.3
 livekit-plugins-google>=0.3.0
 livekit-plugins-silero>=0.3.0
 livekit-plugins-openai>=0.3.0
@@ -10,3 +10,5 @@ aiohttp>=3.9.3
 aiohttp-cors>=0.7.0
 email-validator>=2.1.0
 pydantic-settings>=2.2.1
+mcp>=1.2.0
+email-validator>=2.1.0

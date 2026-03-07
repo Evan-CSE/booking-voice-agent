@@ -9,31 +9,16 @@ from aiohttp import web
 import aiohttp_cors
 
 from livekit import api
-from livekit.agents import AgentSession, AutoSubscribe, JobContext, JobProcess, WorkerOptions, cli
+from livekit.agents import AgentSession, AutoSubscribe, JobContext, JobProcess, WorkerOptions, cli, mcp
 from livekit.agents.voice import Agent
 from livekit.plugins import silero, google, openai
 
 # Clean Architecture Imports
-from .infrastructure.google_calendar import GoogleCalendarRepository
-from .infrastructure.smtp_email import SmtpEmailSender
-from .infrastructure.livekit_agent import AgentTools
-from .usecases.schedule_meeting import VoiceAgentUseCase
 from .services.logger import get_logger
 from .presentation.middleware import logging_middleware
 from .config.settings import settings
 
 logger = get_logger("composition-root")
-
-# --- Composition Root: Dependency Injection Setup ---
-def create_agent_tools() -> list:
-    """Wires up the dependencies and returns the LiveKit function tools."""
-    calendar_repo = GoogleCalendarRepository()
-    email_sender = SmtpEmailSender()
-    use_case = VoiceAgentUseCase(calendar_repo, email_sender)
-    livekit_tools = AgentTools(use_case)
-    
-    # We expose the bound methods as a list of tools for the LiveKit Agent
-    return [livekit_tools.check_availability, livekit_tools.schedule_event]
 
 # --- LiveKit Agent Worker Setup ---
 def prewarm(proc: JobProcess):
@@ -43,11 +28,18 @@ def prewarm(proc: JobProcess):
 async def entrypoint(ctx: JobContext):
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
 
-    stt = openai.STT(base_url=settings.STT_BASE_URL, api_key="not-needed")
-    tts = openai.TTS(base_url=settings.TTS_BASE_URL, api_key="not-needed", response_format="pcm")
-    gemini_llm = google.LLM(model=settings.LLM_MODEL)
+    # Initialize MCP Server to provide tools
+    print("Connecting to MCP Server...")
+    mcp_server = mcp.MCPServerStdio(
+        command="python",
+        args=["-m", "app.mcp_server"],
+        env=os.environ.copy()
+    )
+    print("MCP server initialized.")
 
-    fnc_tools = create_agent_tools()
+    stt = openai.STT(base_url=settings.STT_BASE_URL, api_key="not-needed")
+    tts = openai.TTS(model="kokoro", base_url=settings.TTS_BASE_URL, api_key="not-needed", response_format="pcm")
+    gemini_llm = google.LLM(model=settings.LLM_MODEL)
 
     instructions = f"""
     You are a highly efficient personal scheduling assistant.
@@ -71,7 +63,7 @@ async def entrypoint(ctx: JobContext):
         llm=gemini_llm,
         tts=tts,
         vad=ctx.proc.userdata["vad"],
-        tools=fnc_tools,
+        mcp_servers=[mcp_server],
     )
 
     session = AgentSession()
